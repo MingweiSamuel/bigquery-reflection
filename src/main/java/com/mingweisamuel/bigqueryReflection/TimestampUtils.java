@@ -1,4 +1,4 @@
-package win.pickban.maokai;
+package com.mingweisamuel.bigqueryReflection;
 
 import com.google.protobuf.Timestamp;
 

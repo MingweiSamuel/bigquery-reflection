@@ -1,4 +1,4 @@
-package win.pickban.maokai;
+package com.mingweisamuel.bigqueryReflection;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

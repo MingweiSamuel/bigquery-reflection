@@ -1,4 +1,4 @@
-package win.pickban.maokai;
+package com.mingweisamuel.bigqueryReflection;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,8 +7,9 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface BqDescription {
-    String value() default "";
-    /** True if changing a description should trigger an update. */
-    boolean triggerUpdate() default false;
+public @interface BqField {
+    String name() default "";
+    String type() default "";
+    boolean key() default false;
+    boolean autoTimestamp() default false;
 }

@@ -1,4 +1,4 @@
-package win.pickban.maokai;
+package com.mingweisamuel.bigqueryReflection;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,7 +7,9 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface BqOrderer {
-    int importance() default 1;
-    boolean asc() default false;
+public @interface BqFieldComputed {
+    String expression() default "";
+    String name() default "";
+    String type() default "";
+    boolean key() default false;
 }
