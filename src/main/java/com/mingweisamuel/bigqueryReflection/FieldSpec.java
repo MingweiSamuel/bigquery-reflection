@@ -1,10 +1,13 @@
 package com.mingweisamuel.bigqueryReflection;
 
 import com.google.api.services.bigquery.model.TableRow;
+import com.google.cloud.bigquery.FieldValue;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Map;
 
 class FieldSpec {
 
@@ -94,7 +97,16 @@ class FieldSpec {
     }
 
     void parse(TableRow row, Object object) throws IllegalAccessException {
-        field.set(object, type.parse(row.get(columnName))); // set object.[fieldName]
+        parse(row.get(columnName), object);
+    }
+
+    void parse(Map<String, FieldValue> columns, Object object) throws IllegalAccessException {
+        FieldValue value = columns.get(columnName);
+        parse(value == null ? null : value.getValue(), object);
+    }
+
+    void parse(Object value, Object object) throws IllegalAccessException {
+        field.set(object, type.parse(value)); // set object.[fieldName]
     }
 
     void serialize(Object object, TableRow row) throws IllegalAccessException {

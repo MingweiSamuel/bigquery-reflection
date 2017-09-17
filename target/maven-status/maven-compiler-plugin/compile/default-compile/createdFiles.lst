@@ -3,6 +3,7 @@ com\mingweisamuel\bigqueryReflection\BqReflection$5.class
 com\mingweisamuel\bigqueryReflection\PrimitiveFieldType$5.class
 com\mingweisamuel\bigqueryReflection\FieldType.class
 com\mingweisamuel\bigqueryReflection\BqReflection$3.class
+com\mingweisamuel\bigqueryReflection\SqlBiPredicate.class
 com\mingweisamuel\bigqueryReflection\BqFieldPartition.class
 com\mingweisamuel\bigqueryReflection\BqFieldComputed.class
 com\mingweisamuel\bigqueryReflection\BqReflection.class

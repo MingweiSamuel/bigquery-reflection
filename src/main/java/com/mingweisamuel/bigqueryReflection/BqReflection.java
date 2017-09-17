@@ -32,17 +32,18 @@ import java.util.stream.Collectors;
 
 public class BqReflection<T extends Serializable> {
 
-    private static final Map<Class, BqReflection> cache = new HashMap<>();
-    private static final Set<String> tableNames = new HashSet<>();
+    private static final Map<String, BqReflection> cache = new HashMap<>();
+    private static final Map<String, String> tableNames = new HashMap<>();
     @SuppressWarnings("unchecked")
-    public static <T extends Serializable> BqReflection<T> of(Class<T> clazz) {
-        if (cache.containsKey(clazz))
-            return cache.get(clazz);
+    public synchronized static <T extends Serializable> BqReflection<T> of(Class<T> clazz) {
+        if (cache.containsKey(clazz.getCanonicalName()))
+            return cache.get(clazz.getCanonicalName());
         BqReflection<T> result = new BqReflection<>(clazz);
-        if (tableNames.contains(result.tableName))
-            throw new IllegalStateException("Multiple tables with name :\"" + result.tableName + "\".");
-        cache.put(clazz, result);
-        tableNames.add(result.tableName);
+        if (tableNames.containsKey(result.tableName))
+            throw new IllegalStateException(String.format("Multiple tables with name \"%s\", existing from class %s, " +
+                "new from class %s.", result.tableName, tableNames.get(result.tableName), clazz.getCanonicalName()));
+        cache.put(clazz.getCanonicalName(), result);
+        tableNames.put(result.tableName, clazz.getCanonicalName());
         return result;
     }
 
@@ -132,6 +133,26 @@ public class BqReflection<T extends Serializable> {
         }
     }
 
+    public T parse(Schema schema, List<FieldValue> row) {
+        Map<String, FieldValue> columns = new HashMap<>();
+        for (int i = 0; i < row.size(); i++) {
+            String name = schema.getFields().get(i).getName();
+            FieldValue fieldValue = row.get(i);
+            columns.put(name, fieldValue);
+        }
+        try {
+            Constructor<T> constructor = clazz.getConstructor();
+            T object = constructor.newInstance();
+            for (FieldSpec field : fields)
+                field.parse(columns, object);
+            return object;
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("Cannot parse class without no-arg constructor: " + clazz.getCanonicalName(), e);
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            throw new IllegalStateException("Unable to parse class " + clazz.getCanonicalName() + " from row " + row, e);
+        }
+    }
+
     public TableRow serialize(T value) {
         try {
             TableRow row = new TableRow();
@@ -176,11 +197,13 @@ public class BqReflection<T extends Serializable> {
         };
     }
 
-    public static <T extends Serializable> String getSql(Class<T> clazz, String datasetName, long minTime) {
-        return of(clazz).getSql(datasetName, minTime);
+    public static <T extends Serializable> String getSql(Class<T> clazz, String datasetName, long time,
+        SqlBiPredicate timePredicate) {
+
+        return of(clazz).getSql(datasetName, time, timePredicate);
     }
 
-    public String getSql(String datasetName, long minTime) {
+    public String getSql(String datasetName, long time, SqlBiPredicate timePredicate) {
         StringBuilder outerBuilder = new StringBuilder();
         StringBuilder innerBuilder = new StringBuilder();
         StringBuilder keyBuilder = new StringBuilder();
@@ -205,7 +228,7 @@ public class BqReflection<T extends Serializable> {
         }
 
         String dateString = DateTimeFormatter.ISO_LOCAL_DATE.format(
-            Instant.ofEpochMilli(minTime).atOffset(ZoneOffset.UTC));
+            Instant.ofEpochMilli(time).atOffset(ZoneOffset.UTC));
 
         return
             "SELECT " + outer + "\n" +
@@ -213,7 +236,7 @@ public class BqReflection<T extends Serializable> {
             "  SELECT " + inner + ",\n" +
             "  ROW_NUMBER() OVER(PARTITION BY " + key + order + ") AS _rank\n" +
             "  FROM " + datasetName + '.' + tableName + "\n" +
-            "  WHERE _PARTITIONTIME >= TIMESTAMP('" + dateString + "')\n" +
+            "  WHERE _PARTITIONTIME " + timePredicate.op + " TIMESTAMP('" + dateString + "')\n" +
             ")\n" +
             "WHERE _rank=1\n";
     }
@@ -221,14 +244,15 @@ public class BqReflection<T extends Serializable> {
     public static <T extends Serializable> PTransform<PBegin, PCollection<T>> read(
             Class<T> clazz, String datasetName, long minTime) {
 
-        System.out.println('"' + BqReflection.getSql(clazz, datasetName, minTime) + '"');
+        System.out.println(
+            '"' + BqReflection.getSql(clazz, datasetName, minTime, SqlBiPredicate.GREATER_THAN_OR_EQUAL_TO) + '"');
 
         return new PTransform<PBegin, PCollection<T>>() {
             @Override
             public PCollection<T> expand(PBegin input) {
                 return input.getPipeline()
                     .apply("Read", BigQueryIO.read()
-                        .fromQuery(BqReflection.getSql(clazz, datasetName, minTime))
+                        .fromQuery(BqReflection.getSql(clazz, datasetName, minTime, SqlBiPredicate.GREATER_THAN_OR_EQUAL_TO))
                         .usingStandardSql())
                     .apply("Deserialize", MapElements.via(parser(clazz)));
             }

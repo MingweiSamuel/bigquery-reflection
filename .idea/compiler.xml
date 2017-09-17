@@ -6,12 +6,14 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="bigquery-reflection" />
         <module name="bigqueryReflection" />
         <module name="maokai" />
         <module name="Maokai" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="bigquery-reflection" target="1.8" />
       <module name="bigqueryReflection" target="1.8" />
       <module name="maokai" target="1.8" />
       <module name="Maokai" target="1.5" />
