@@ -6,7 +6,7 @@
 
     <groupId>com.mingweisamuel</groupId>
     <artifactId>bigquery-reflection</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <name>bigquery-reflection</name>
     <description>BigQuery Utilities and Connectors.</description>
