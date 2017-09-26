@@ -104,6 +104,10 @@ public class BqReflection<T extends Serializable> {
         this.ordererFields = ImmutableList.copyOf(ordererFields);
     }
 
+    public String getTableName() {
+        return tableName;
+    }
+
     public byte[] getKey(T value) {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         DataOutputStream dataOut = new DataOutputStream(bytesOut);
