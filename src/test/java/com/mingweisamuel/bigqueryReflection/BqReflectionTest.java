@@ -1,6 +1,7 @@
 package com.mingweisamuel.bigqueryReflection;
 
-//import org.junit.Test;
+import com.google.api.services.bigquery.model.TableRow;
+import org.junit.Test;
 //import win.pickban.sona.bigquery.BqChampionBanStats;
 //import win.pickban.sona.bigquery.BqChampionStats;
 //import win.pickban.sona.bigquery.BqGeneralMatchStats;
@@ -14,6 +15,20 @@ import java.io.IOException;
  * Testing {@link BqReflection}.
  */
 public class BqReflectionTest {
+
+    @Test
+    public void testBasic() throws IOException {
+        BqSummoner s = new BqSummoner();
+        s.id = 987;
+        s.accountId = 123;
+        s.rank = 111;
+        s.timestamp = System.currentTimeMillis();
+
+        TableRow row = BqReflection.of(BqSummoner.class).serialize(s);
+        System.out.println(row);
+        System.out.println(s.timestamp);
+        System.out.println(TimestampUtils.parseBqTimestamp(row.get("ts").toString()));
+    }
 
 //    @Test
 //    public void test() throws IOException {
