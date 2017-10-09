@@ -1,6 +1,7 @@
 package com.mingweisamuel.bigqueryReflection;
 
 import com.google.api.services.bigquery.model.TableRow;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 //import win.pickban.sona.bigquery.BqChampionBanStats;
 //import win.pickban.sona.bigquery.BqChampionStats;
@@ -10,6 +11,8 @@ import org.junit.Test;
 //import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Testing {@link BqReflection}.
@@ -28,6 +31,64 @@ public class BqReflectionTest {
         System.out.println(row);
         System.out.println(s.timestamp);
         System.out.println(TimestampUtils.parseBqTimestamp(row.get("ts").toString()));
+    }
+
+    @Test
+    public void testArray() {
+        Map<String, Object> obj = ImmutableMap.<String, Object>builder()
+            .put("id", "143")
+            .put("_pt", System.currentTimeMillis())
+            .put("queue", "420")
+            .put("ts", System.currentTimeMillis())
+            .put("data", Arrays.asList(
+                ImmutableMap.builder()
+                    .put("id", 498)
+                    .put("queue", 420)
+                    .put("rank", 2500)
+                    .put("remakes", 0)
+                    .put("wins", 1)
+                    .put("losses", 1)
+                    .build(),
+                ImmutableMap.builder()
+                    .put("id", 498)
+                    .put("queue", 420)
+                    .put("rank", 3000)
+                    .put("remakes", 0)
+                    .put("wins", 0)
+                    .put("losses", 1)
+                    .build(),
+                ImmutableMap.builder()
+                    .put("id", 498)
+                    .put("queue", 420)
+                    .put("rank", 2000)
+                    .put("remakes", 0)
+                    .put("wins", 2)
+                    .put("losses", 2)
+                    .build(),
+                ImmutableMap.builder()
+                    .put("id", 498)
+                    .put("queue", 420)
+                    .put("rank", 1000)
+                    .put("remakes", 0)
+                    .put("wins", 1)
+                    .put("losses", 4)
+                    .build(),
+                ImmutableMap.builder()
+                    .put("id", 516)
+                    .put("queue", 420)
+                    .put("rank", 2500)
+                    .put("remakes", 0)
+                    .put("wins", 0)
+                    .put("losses", 2)
+                    .build()
+
+            ))
+            .build();
+
+        BqReflection<AggregatedStats> r = BqReflection.of(AggregatedStats.class);
+        AggregatedStats as = r.parse(obj);
+
+        System.out.println(as.data);
     }
 
 //    @Test

@@ -5,6 +5,7 @@ import com.google.cloud.bigquery.FieldValue;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Map;
@@ -35,7 +36,8 @@ class FieldSpec {
         BqField bqf = field.getAnnotation(BqField.class);
         BqFieldPartition bqp = field.getAnnotation(BqFieldPartition.class);
         BqFieldComputed bqc = field.getAnnotation(BqFieldComputed.class);
-        int nonNulls = (bqf != null ? 1 : 0) + (bqp != null ? 1 : 0) + (bqc != null ? 1 : 0);
+        BqArray bqa = field.getAnnotation(BqArray.class);
+        int nonNulls = (bqf != null ? 1 : 0) + (bqp != null ? 1 : 0) + (bqc != null ? 1 : 0) + (bqa != null ? 1 : 0);
         if (nonNulls > 1)
             throw new IllegalStateException(
                 "BqField can only be marked with one of @BqField, @BqFieldPartition, or @BqFieldComputed.");
@@ -47,10 +49,15 @@ class FieldSpec {
             return new FieldSpec(field, bqp, bqo, bqd);
         if (bqc != null)
             return new FieldSpec(field, bqc, bqo, bqd);
+        if (bqa != null) {
+            if (bqo != null)
+                throw new IllegalStateException("@BqArray field cannot be marked with @BqOrderer.");
+            return new FieldSpec(field, bqa, bqd);
+        }
 
         if (bqo != null)
             throw new IllegalStateException(
-                "BqField marked as @BqOrdere must also be marked with @BqField, @BqFieldPartition, or @BqFieldComputed.");
+                "BqField marked as @BqOrderer must also be marked with @BqField, @BqFieldPartition, or @BqFieldComputed.");
         return null;
     }
 
@@ -65,6 +72,11 @@ class FieldSpec {
 
     private FieldSpec(Field field, BqFieldComputed ann, BqOrderer ord, BqDescription bqd) {
         this(false, true, ann.key(), ann.expression(), field, ann.name(), ord, ann.type(), false, bqd);
+    }
+
+    private FieldSpec(Field field, BqArray ann, BqDescription bqd) {
+        this(false, true, false, null, field, ann.name(), null,
+            Serializable.class != ann.type() ? new ArrayFieldType(ann.type()) : new ArrayFieldType(), false, bqd);
     }
 
     private FieldSpec(boolean isPartition, boolean isExcluded, boolean isKey, String computedExpression, Field field,
@@ -96,11 +108,11 @@ class FieldSpec {
             throw new IllegalStateException("AutoTimestamp field must be of type TIMESTAMP.");
     }
 
-    void parse(TableRow row, Object object) throws IllegalAccessException {
+    void parse(Map<String, Object> row, Object object) throws IllegalAccessException {
         parse(row.get(columnName), object);
     }
 
-    void parse(Map<String, FieldValue> columns, Object object) throws IllegalAccessException {
+    void parseMap(Map<String, FieldValue> columns, Object object) throws IllegalAccessException {
         FieldValue value = columns.get(columnName);
         parse(value == null ? null : value.getValue(), object);
     }

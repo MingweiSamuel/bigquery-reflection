@@ -58,8 +58,9 @@ public class BqReflection<T extends Serializable> {
 
         BqTable bqTable = clazz.getDeclaredAnnotation(BqTable.class);
         if (bqTable == null)
-            throw new IllegalArgumentException("Class does not have @BqTable annotation.");
-        if (!bqTable.value().isEmpty())
+            this.tableName = null;
+            //throw new IllegalArgumentException("Class does not have @BqTable annotation.");
+        else if (!bqTable.value().isEmpty())
             this.tableName = bqTable.value();
         else
             this.tableName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_CAMEL, clazz.getSimpleName());
@@ -123,7 +124,7 @@ public class BqReflection<T extends Serializable> {
         }
     }
 
-    public T parse(TableRow row) {
+    public T parse(Map<String, Object> row) {
         try {
             Constructor<T> constructor = clazz.getConstructor();
             T object = constructor.newInstance();
@@ -148,7 +149,7 @@ public class BqReflection<T extends Serializable> {
             Constructor<T> constructor = clazz.getConstructor();
             T object = constructor.newInstance();
             for (FieldSpec field : fields)
-                field.parse(columns, object);
+                field.parseMap(columns, object);
             return object;
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Cannot parse class without no-arg constructor: " + clazz.getCanonicalName(), e);
@@ -208,6 +209,8 @@ public class BqReflection<T extends Serializable> {
     }
 
     public String getSql(String datasetName, long time, SqlBiPredicate timePredicate) {
+        if (tableName == null)
+            throw new IllegalStateException("Anonymous table (no @BqTable).");
         StringBuilder outerBuilder = new StringBuilder();
         StringBuilder innerBuilder = new StringBuilder();
         StringBuilder keyBuilder = new StringBuilder();
@@ -298,6 +301,8 @@ public class BqReflection<T extends Serializable> {
     }
 
     private TableDefinition getTableDefinition(boolean partitioned, boolean required) {
+        if (tableName == null)
+            throw new IllegalStateException("Anonymous table (no @BqTable).");
         System.out.println(this.tableName);
         Schema.Builder schemaBuilder = Schema.newBuilder();
         for (FieldSpec field : includedFields()) {
@@ -318,12 +323,16 @@ public class BqReflection<T extends Serializable> {
     }
 
     private Table createTable(BigQuery bigQuery, String datasetId) {
+        if (tableName == null)
+            throw new IllegalStateException("Anonymous table (no @BqTable).");
         TableDefinition tableDef = getTableDefinition(partitionField != null, true);
         return bigQuery.create(TableInfo.of(TableId.of(datasetId, tableName), tableDef));
     }
 
     private Table updateTable(BigQuery bigQuery, String datasetId, Table existingTable) {
             existingTable = existingTable.reload();
+        if (tableName == null)
+            throw new IllegalStateException("Anonymous table (no @BqTable).");
         Schema existingSchema = existingTable.getDefinition().getSchema();
         Map<String, com.google.cloud.bigquery.Field> existingFields = existingSchema.getFields().stream()
             .collect(Collectors.toMap(com.google.cloud.bigquery.Field::getName, Function.identity()));
@@ -346,7 +355,6 @@ public class BqReflection<T extends Serializable> {
     }
 
     public static void createOrUpdateTables(BigQuery bigQuery, String datasetId, Class... classes) {
-
         HashMap<String, Table> existingTables = new HashMap<>();
         Page<Table> tablePage = bigQuery.listTables(datasetId);
         for (; tablePage != null; tablePage = tablePage.getNextPage()) {
