@@ -39,7 +39,7 @@ public class BqReflection<T extends Serializable> {
         if (cache.containsKey(clazz.getCanonicalName()))
             return cache.get(clazz.getCanonicalName());
         BqReflection<T> result = new BqReflection<>(clazz);
-        if (tableNames.containsKey(result.tableName))
+        if (result.tableName != null && tableNames.containsKey(result.tableName))
             throw new IllegalStateException(String.format("Multiple tables with name \"%s\", existing from class %s, " +
                 "new from class %s.", result.tableName, tableNames.get(result.tableName), clazz.getCanonicalName()));
         cache.put(clazz.getCanonicalName(), result);
