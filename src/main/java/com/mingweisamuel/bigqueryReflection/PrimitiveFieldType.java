@@ -9,7 +9,7 @@ public enum PrimitiveFieldType implements FieldType {
     STRING {
         @Override
         public String parse(Object value) {
-            return value.toString();
+            return value == null ? null : value.toString();
         }
         @Override
         public Field.Type getBqType() {
@@ -51,7 +51,7 @@ public enum PrimitiveFieldType implements FieldType {
     BOOLEAN {
         @Override
         public Boolean parse(Object value) {
-            return Boolean.parseBoolean(value.toString());
+            return value != null && Boolean.parseBoolean(value.toString());
         }
         @Override
         public Field.Type getBqType() {
@@ -65,7 +65,7 @@ public enum PrimitiveFieldType implements FieldType {
     TIMESTAMP {
         @Override
         public Long parse(Object value) {
-            return TimestampUtils.parseBqTimestamp(value.toString());
+            return value == null ? 0 : TimestampUtils.parseBqTimestamp(value.toString());
         }
         @Override
         public Object serialize(Object value) {
